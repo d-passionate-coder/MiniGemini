@@ -1,0 +1,27 @@
+spring:
+  application:
+    name: auth-service
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/minigemini}
+    username: ${SPRING_DATASOURCE_USERNAME:postgres}
+    password: ${SPRING_DATASOURCE_PASSWORD:postgres}
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+      hibernate:
+        ddl-auto: update         # auto creates tables on startup
+      show-sql: true             # prints SQL queries in console
+      properties:
+        hibernate:
+          format_sql: true       # makes printed SQL readable
+          dialect: org.hibernate.dialect.PostgreSQLDialect
+
+jwt:
+  secret: ${JWT_SECRET:404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970}
+  expiryMinutes: 60
+
+server:
+  error:
+    include-message: always
+    include-binding-errors: always
+  port: 8081

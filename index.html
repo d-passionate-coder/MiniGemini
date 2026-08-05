@@ -1,0 +1,805 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AI Workspace</title>
+
+    <!-- Tailwind CSS via CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Font Awesome Icons -->
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+
+    <!-- Marked.js for Markdown Parsing -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+    <!-- Highlight.js for Code Block Syntax Highlighting -->
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css"
+    />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+
+    <style>
+      /* Modern, sleek custom scrollbars */
+      ::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+      }
+      ::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      ::-webkit-scrollbar-thumb {
+        background: #334155; /* slate-700 */
+        border-radius: 9999px;
+      }
+      ::-webkit-scrollbar-thumb:hover {
+        background: #475569; /* slate-600 */
+      }
+
+      /* Markdown Formatting Rules inside AI responses */
+      .msg-text p {
+        margin-bottom: 0.75rem;
+      }
+      .msg-text p:last-child {
+        margin-bottom: 0;
+      }
+      .msg-text ul {
+        list-style-type: disc;
+        padding-left: 1.25rem;
+        margin-bottom: 0.75rem;
+      }
+      .msg-text ol {
+        list-style-type: decimal;
+        padding-left: 1.25rem;
+        margin-bottom: 0.75rem;
+      }
+      .msg-text h1,
+      .msg-text h2,
+      .msg-text h3 {
+        font-weight: 700;
+        color: #f8fafc;
+        margin-top: 1rem;
+        margin-bottom: 0.5rem;
+      }
+      .msg-text h1 {
+        font-size: 1.25rem;
+      }
+      .msg-text h2 {
+        font-size: 1.1rem;
+      }
+      .msg-text h3 {
+        font-size: 1rem;
+      }
+      .msg-text strong {
+        font-weight: 600;
+        color: #f1f5f9;
+      }
+      .msg-text code:not(pre code) {
+        background-color: #0f172a;
+        color: #38bdf8;
+        padding: 0.15rem 0.4rem;
+        border-radius: 0.25rem;
+        font-family: monospace;
+        font-size: 0.85em;
+      }
+      .msg-text pre {
+        background-color: #0f172a;
+        border: 1px solid #1e293b;
+        border-radius: 0.5rem;
+        padding: 0.75rem;
+        margin-top: 0.5rem;
+        margin-bottom: 0.75rem;
+        overflow-x: auto;
+      }
+      .msg-text pre code {
+        font-family: monospace;
+        font-size: 0.85rem;
+        color: #e2e8f0;
+      }
+
+      /* Ensure streamed lists keep their indentations and bullets */
+      .assistant-message ul,
+      .assistant-message ol {
+        margin-left: 1.5rem !important;
+        padding-left: 1rem !important;
+        list-style-position: outside !important;
+      }
+
+      .assistant-message ul {
+        list-style-type: disc !important;
+      }
+
+      .assistant-message ol {
+        list-style-type: decimal !important;
+      }
+
+      .assistant-message li {
+        margin-bottom: 0.25rem;
+      }
+    </style>
+  </head>
+  <body
+    class="bg-slate-950 text-slate-100 font-sans antialiased h-screen overflow-hidden"
+  >
+    <!-- ================= AUTH VIEW ================= -->
+    <div id="auth-view" class="flex items-center justify-center h-full">
+      <div
+        class="w-full max-w-md p-8 bg-slate-900 rounded-2xl border border-slate-800 shadow-2xl space-y-6"
+      >
+        <div class="text-center space-y-2">
+          <h1 class="text-3xl font-bold tracking-tight text-white">
+            Welcome back
+          </h1>
+          <p id="auth-subtitle" class="text-sm text-slate-400">
+            Sign in to your account to continue
+          </p>
+        </div>
+
+        <form id="auth-form" class="space-y-4" onsubmit="handleAuth(event)">
+          <!-- Optional First & Last Name -->
+          <div id="name-fields" class="hidden grid grid-cols-2 gap-3">
+            <div>
+              <label
+                class="block text-xs font-semibold uppercase text-slate-400 tracking-wider mb-2"
+                >First Name</label
+              >
+              <input
+                type="text"
+                id="firstname"
+                placeholder="John"
+                class="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl focus:outline-none focus:border-indigo-500 text-white placeholder-slate-600 transition text-sm"
+              />
+            </div>
+            <div>
+              <label
+                class="block text-xs font-semibold uppercase text-slate-400 tracking-wider mb-2"
+                >Last Name</label
+              >
+              <input
+                type="text"
+                id="lastname"
+                placeholder="Doe"
+                class="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl focus:outline-none focus:border-indigo-500 text-white placeholder-slate-600 transition text-sm"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label
+              class="block text-xs font-semibold uppercase text-slate-400 tracking-wider mb-2"
+              >Email</label
+            >
+            <input
+              type="email"
+              id="email"
+              required
+              class="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl focus:outline-none focus:border-indigo-500 text-white placeholder-slate-600 transition text-sm"
+            />
+          </div>
+          <div>
+            <label
+              class="block text-xs font-semibold uppercase text-slate-400 tracking-wider mb-2"
+              >Password</label
+            >
+            <input
+              type="password"
+              id="password"
+              required
+              class="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl focus:outline-none focus:border-indigo-500 text-white placeholder-slate-600 transition text-sm"
+            />
+          </div>
+
+          <div
+            id="auth-error"
+            class="hidden text-xs text-rose-400 bg-rose-500/10 p-3 rounded-lg border border-rose-500/20"
+          ></div>
+
+          <button
+            type="submit"
+            id="auth-btn"
+            class="w-full py-3 bg-indigo-600 hover:bg-indigo-500 font-semibold rounded-xl transition duration-200 text-white shadow-lg shadow-indigo-600/20"
+          >
+            Sign In
+          </button>
+        </form>
+
+        <div class="text-center">
+          <button
+            onclick="toggleAuthMode()"
+            id="toggle-auth-btn"
+            class="text-xs text-slate-400 hover:text-indigo-400 transition"
+          >
+            Don't have an account?
+            <span class="font-semibold text-indigo-400">Sign Up</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= CHAT VIEW ================= -->
+    <div id="chat-view" class="hidden flex h-full">
+      <!-- SIDEBAR -->
+      <aside
+        class="w-72 bg-slate-900 border-r border-slate-800/80 flex flex-col justify-between"
+      >
+        <div class="flex-1 flex flex-col min-h-0">
+          <!-- App Header & New Chat Button -->
+          <div
+            class="p-4 border-b border-slate-800/80 flex items-center justify-between"
+          >
+            <span
+              class="font-bold text-slate-200 tracking-wide flex items-center gap-2"
+            >
+              <i class="fa-solid fa-brain text-indigo-500"></i> Polyglot AI
+            </span>
+            <button
+              onclick="startNewChat()"
+              class="p-2 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-white transition"
+              title="New Chat"
+            >
+              <i class="fa-solid fa-pen-to-square"></i>
+            </button>
+          </div>
+
+          <!-- Scrollable Conversation List -->
+          <div
+            id="conversation-list"
+            class="p-3 space-y-1 overflow-y-auto flex-1"
+          >
+            <!-- Conversations render dynamically here -->
+          </div>
+        </div>
+
+        <!-- User Profile & Logout Footer -->
+        <div
+          class="p-4 border-t border-slate-800/80 flex items-center justify-between bg-slate-900/50"
+        >
+          <div class="flex items-center gap-3">
+            <div
+              class="w-8 h-8 rounded-full bg-indigo-600/20 text-indigo-400 border border-indigo-500/30 flex items-center justify-center font-bold text-xs"
+              id="user-avatar"
+            >
+              U
+            </div>
+            <span
+              id="user-display-name"
+              class="text-sm font-medium text-slate-300 truncate max-w-[120px]"
+              >User</span
+            >
+          </div>
+          <button
+            onclick="logout()"
+            class="text-slate-500 hover:text-rose-400 transition p-1"
+            title="Logout"
+          >
+            <i class="fa-solid fa-right-from-bracket"></i>
+          </button>
+        </div>
+      </aside>
+
+      <!-- MAIN CHAT AREA -->
+      <main
+        class="flex-1 flex flex-col h-full bg-slate-950 relative overflow-hidden"
+      >
+        <!-- Messages Display Area (Extends to the extreme right edge for the scrollbar) -->
+        <div
+          id="messages-container"
+          class="flex-1 overflow-y-auto px-4 py-6 space-y-6 w-full"
+        >
+          <div
+            id="empty-state"
+            class="h-full flex flex-col items-center justify-center text-slate-500 space-y-3"
+          >
+            <i class="fa-regular fa-comments text-4xl"></i>
+            <p class="text-sm">Select a conversation or start a new prompt.</p>
+          </div>
+        </div>
+
+        <!-- Centered Fixed Input Bar -->
+        <div class="p-4 border-t border-slate-900 bg-slate-950 w-full">
+          <form
+            onsubmit="sendMessage(event)"
+            class="max-w-4xl mx-auto flex items-center gap-3 bg-slate-900 border border-slate-800 rounded-2xl px-4 py-3 focus-within:border-indigo-500/50 transition"
+          >
+            <input
+              type="text"
+              id="user-input"
+              autocomplete="off"
+              placeholder="Type your message..."
+              class="flex-1 bg-transparent focus:outline-none text-slate-100 placeholder-slate-500 text-sm"
+            />
+            <button
+              type="submit"
+              id="send-btn"
+              class="p-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl transition disabled:opacity-50"
+            >
+              <i class="fa-solid fa-paper-plane text-xs"></i>
+            </button>
+          </form>
+        </div>
+      </main>
+    </div>
+
+    <script>
+      // ==========================================
+      // 1. CONFIGURATION & GLOBAL STATE
+      // ==========================================
+      const API_BASE_URL = "http://localhost:8080/api";
+
+      const state = {
+        accessToken: localStorage.getItem("access_token") || null,
+        refreshToken: localStorage.getItem("refresh_token") || null,
+        firstName: localStorage.getItem("first_name") || null,
+        conversations: [],
+        activeConversationId: null,
+        isSignUpMode: false,
+      };
+
+      // Configure marked.js for syntax highlighting
+      if (window.marked) {
+        marked.setOptions({
+          highlight: function (code, lang) {
+            if (window.hljs && lang && hljs.getLanguage(lang)) {
+              return hljs.highlight(code, { language: lang }).value;
+            }
+            return window.hljs ? hljs.highlightAuto(code).value : code;
+          },
+          breaks: true,
+        });
+      }
+
+      // ==========================================
+      // 2. APP INITIALIZATION
+      // ==========================================
+      document.addEventListener("DOMContentLoaded", () => {
+        if (state.accessToken) {
+          initChatDashboard();
+        } else {
+          showAuthView();
+        }
+      });
+
+      function showAuthView() {
+        document.getElementById("auth-view").classList.remove("hidden");
+        document.getElementById("chat-view").classList.add("hidden");
+      }
+
+      function initChatDashboard() {
+        document.getElementById("auth-view").classList.add("hidden");
+        document.getElementById("chat-view").classList.remove("hidden");
+
+        const displayName = state.firstName || "User";
+        document.getElementById("user-display-name").innerText = displayName;
+        document.getElementById("user-avatar").innerText = displayName
+          .charAt(0)
+          .toUpperCase();
+
+        fetchConversations();
+      }
+
+      // ==========================================
+      // 3. AUTHENTICATION
+      // ==========================================
+      function toggleAuthMode() {
+        state.isSignUpMode = !state.isSignUpMode;
+
+        const nameFields = document.getElementById("name-fields");
+        if (nameFields) {
+          if (state.isSignUpMode) {
+            nameFields.classList.remove("hidden");
+          } else {
+            nameFields.classList.add("hidden");
+          }
+        }
+
+        document.getElementById("auth-subtitle").innerText = state.isSignUpMode
+          ? "Create a new account"
+          : "Sign in to your account to continue";
+        document.getElementById("auth-btn").innerText = state.isSignUpMode
+          ? "Sign Up"
+          : "Sign In";
+        document.getElementById("toggle-auth-btn").innerHTML =
+          state.isSignUpMode
+            ? 'Already have an account? <span class="font-semibold text-indigo-400">Sign In</span>'
+            : 'Don\'t have an account? <span class="font-semibold text-indigo-400">Sign Up</span>';
+      }
+
+      async function handleAuth(e) {
+        e.preventDefault();
+        const emailInput = document.getElementById("email").value.trim();
+        const passwordInput = document.getElementById("password").value.trim();
+        const firstNameInput =
+          document.getElementById("firstname")?.value.trim() || "";
+        const lastNameInput =
+          document.getElementById("lastname")?.value.trim() || "";
+
+        const errDiv = document.getElementById("auth-error");
+        errDiv.classList.add("hidden");
+
+        const endpoint = state.isSignUpMode ? "/auth/signup" : "/auth/login";
+
+        const payload = state.isSignUpMode
+          ? {
+              email: emailInput,
+              password: passwordInput,
+              firstName: firstNameInput || null,
+              lastName: lastNameInput || null,
+            }
+          : {
+              email: emailInput,
+              password: passwordInput,
+            };
+
+        try {
+          const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          });
+
+          if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(errorText || "Authentication failed");
+          }
+
+          const data = await response.json();
+
+          state.accessToken = data.accessToken;
+          state.refreshToken = data.refreshToken;
+          state.firstName = data.firstName || firstNameInput || emailInput;
+
+          localStorage.setItem("access_token", state.accessToken);
+          localStorage.setItem("refresh_token", state.refreshToken);
+          localStorage.setItem("first_name", state.firstName);
+
+          initChatDashboard();
+        } catch (err) {
+          errDiv.innerText = err.message;
+          errDiv.classList.remove("hidden");
+        }
+      }
+
+      function logout() {
+        localStorage.clear();
+        state.accessToken = null;
+        state.refreshToken = null;
+        state.firstName = null;
+        state.conversations = [];
+        state.activeConversationId = null;
+        window.location.reload();
+      }
+
+      // ==========================================
+      // 4. AUTHENTICATED FETCH WITH AUTO-REFRESH
+      // ==========================================
+      async function authFetch(url, options = {}) {
+        options.headers = {
+          ...options.headers,
+          Authorization: `Bearer ${state.accessToken}`,
+        };
+
+        let response = await fetch(url, options);
+
+        if (response.status === 401 && state.refreshToken) {
+          console.warn("Access token expired. Requesting refresh token...");
+          const refreshed = await refreshAccessToken();
+
+          if (refreshed) {
+            options.headers["Authorization"] = `Bearer ${state.accessToken}`;
+            response = await fetch(url, options);
+          } else {
+            logout();
+            throw new Error("Session expired. Please log in again.");
+          }
+        }
+
+        return response;
+      }
+
+      async function refreshAccessToken() {
+        try {
+          const response = await fetch(`${API_BASE_URL}/auth/refresh`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ refreshToken: state.refreshToken }),
+          });
+
+          if (!response.ok) return false;
+
+          const data = await response.json();
+
+          state.accessToken = data.accessToken;
+          localStorage.setItem("access_token", state.accessToken);
+
+          if (data.refreshToken) {
+            state.refreshToken = data.refreshToken;
+            localStorage.setItem("refresh_token", state.refreshToken);
+          }
+
+          return true;
+        } catch (err) {
+          console.error("Token refresh failed:", err);
+          return false;
+        }
+      }
+
+      // ==========================================
+      // 5. SIDEBAR & CONVERSATIONS MANAGEMENT
+      // ==========================================
+      async function fetchConversations() {
+        try {
+          const response = await authFetch(`${API_BASE_URL}/conversations`);
+
+          if (!response.ok) throw new Error("Failed to load conversations");
+
+          state.conversations = await response.json();
+          renderSidebar();
+        } catch (err) {
+          console.error("Error fetching conversations:", err);
+        }
+      }
+
+      function renderSidebar() {
+        const listContainer = document.getElementById("conversation-list");
+        if (!listContainer) return;
+
+        listContainer.innerHTML = "";
+
+        if (state.conversations.length === 0) {
+          listContainer.innerHTML = `
+            <div class="p-3 text-xs text-slate-500 text-center">No previous chats</div>
+          `;
+          return;
+        }
+
+        state.conversations.forEach((convo) => {
+          const isSelected = convo.id === state.activeConversationId;
+
+          const item = document.createElement("div");
+          item.dataset.id = convo.id;
+          item.className = `p-3 rounded-xl cursor-pointer text-sm transition flex items-center gap-3 ${
+            isSelected
+              ? "bg-indigo-600/20 text-indigo-300 font-medium border border-indigo-500/30"
+              : "text-slate-400 hover:bg-slate-800/60 hover:text-slate-200"
+          }`;
+
+          item.innerHTML = `
+            <i class="fa-regular fa-message text-xs"></i>
+            <span class="truncate flex-1">${escapeHtml(convo.title || "New Chat")}</span>
+          `;
+
+          item.onclick = () => selectConversation(convo.id);
+          listContainer.appendChild(item);
+        });
+      }
+
+      async function selectConversation(conversationId) {
+        if (state.activeConversationId === conversationId) return;
+
+        state.activeConversationId = conversationId;
+        renderSidebar();
+
+        const container = document.getElementById("messages-container");
+        container.innerHTML =
+          '<div class="text-xs text-slate-500 text-center my-8">Loading history...</div>';
+
+        try {
+          const response = await authFetch(
+            `${API_BASE_URL}/conversations/${conversationId}`,
+          );
+
+          if (!response.ok)
+            throw new Error("Failed to load conversation history");
+
+          const conversation = await response.json();
+          const messages = conversation.messages || [];
+          container.innerHTML = "";
+          if (messages.length === 0) {
+            container.innerHTML = `<div class="text-xs text-slate-500 text-center my-8">No messages in this chat yet.</div>`;
+          } else {
+            messages.forEach((msg) => appendMessage(msg.role, msg.content));
+          }
+        } catch (err) {
+          container.innerHTML = `<div class="text-xs text-rose-400 text-center my-8">${err.message}</div>`;
+        }
+      }
+
+      function startNewChat() {
+        state.activeConversationId = null;
+        renderSidebar();
+
+        document.getElementById("messages-container").innerHTML = `
+        <div id="empty-state" class="h-full flex flex-col items-center justify-center text-slate-500 space-y-3">
+            <i class="fa-regular fa-comments text-4xl"></i>
+            <p class="text-sm">Select a conversation or start a new prompt.</p>
+        </div>
+    `;
+      }
+
+      // ==========================================
+      // 6. MESSAGING & SSE STREAMING PIPELINE
+      // ==========================================
+      async function sendMessage(e) {
+        e.preventDefault();
+
+        const input = document.getElementById("user-input");
+        const content = input.value.trim();
+
+        if (!content) return;
+
+        input.value = "";
+        document.getElementById("empty-state")?.remove();
+
+        // 1. Render User Prompt
+        appendMessage("user", content);
+
+        // 2. Render Empty Assistant Placeholder
+        const assistantMsgWrapper = appendMessage("assistant", "");
+        const textContainer = assistantMsgWrapper.querySelector(".msg-text");
+
+        // Grab scrolling container
+        const container = document.getElementById("messages-container");
+
+        // 3. Select Target Endpoint
+        const endpoint = state.activeConversationId
+          ? `/conversations/${state.activeConversationId}/messages`
+          : "/conversations/messages";
+
+        try {
+          const response = await authFetch(`${API_BASE_URL}${endpoint}`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              content: content,
+              conversationId: state.activeConversationId,
+            }),
+          });
+
+          if (!response.ok) throw new Error("Failed to send message");
+
+          const headerConvoId = response.headers.get("X-Conversation-Id");
+          if (headerConvoId) {
+            state.activeConversationId = headerConvoId;
+
+            const exists = state.conversations.some(
+              (c) => c.id === headerConvoId,
+            );
+            if (!exists) {
+              state.conversations.unshift({
+                id: headerConvoId,
+                title: "New Chat",
+              });
+              renderSidebar();
+            }
+          }
+
+          // 4. Read SSE Stream
+          const reader = response.body.getReader();
+          const decoder = new TextDecoder("utf-8");
+
+          let buffer = "";
+          let currentEvent = null;
+          let rawAccumulatedText = "";
+
+          while (true) {
+            const { value, done } = await reader.read();
+            if (done) break;
+
+            buffer += decoder.decode(value, { stream: true });
+            const lines = buffer.split("\n");
+
+            // Keep unfinished line for the next iteration
+            buffer = lines.pop();
+
+            for (let line of lines) {
+              // DO NOT use line.trim() globally here, as leading spaces matter for nested lists!
+              const trimmedLine = line.trim();
+
+              // Detect SSE event name
+              if (trimmedLine.startsWith("event:")) {
+                currentEvent = trimmedLine.replace("event:", "").trim();
+              }
+              // Detect SSE data payload
+              else if (trimmedLine.startsWith("data:")) {
+                let data = trimmedLine.startsWith("data: ")
+                  ? trimmedLine.slice(6)
+                  : trimmedLine.startsWith("data:")
+                    ? trimmedLine.slice(5)
+                    : trimmedLine;
+
+                if (currentEvent === "title") {
+                  const convo = state.conversations.find(
+                    (c) => c.id === state.activeConversationId,
+                  );
+                  if (convo) {
+                    convo.title = data;
+                  } else {
+                    state.conversations.unshift({
+                      id: state.activeConversationId,
+                      title: data,
+                    });
+                  }
+                  renderSidebar();
+                } else if (currentEvent === "token" || !currentEvent) {
+                  // FIX 1: Convert escaped newlines AND handle empty data lines
+                  const sanitizedData = data
+                    ? data.replaceAll("\\n", "\n")
+                    : "\n";
+
+                  // FIX 2: Append sanitizedData instead of raw data
+                  rawAccumulatedText += sanitizedData;
+
+                  // Render Markdown
+                  textContainer.innerHTML = marked.parse(rawAccumulatedText);
+
+                  // FIX 3: Scroll container live as tokens stream in!
+                  if (container) {
+                    container.scrollTop = container.scrollHeight;
+                  }
+                }
+
+                // Reset event after consuming its data line
+                currentEvent = null;
+              }
+            }
+          }
+        } catch (err) {
+          textContainer.innerText = `[Error: ${err.message}]`;
+          textContainer.classList.add("text-rose-400");
+        }
+      }
+
+      // ==========================================
+      // 7. UTILITY & HELPER FUNCTIONS
+      // ==========================================
+      function appendMessage(role, content) {
+        const container = document.getElementById("messages-container");
+        const wrapper = document.createElement("div");
+        const isUser = role === "user";
+
+        wrapper.className = `flex ${isUser ? "justify-end" : "justify-start"} w-full max-w-4xl mx-auto`;
+
+        let renderedContent = escapeHtml(content);
+        if (!isUser && window.marked && content) {
+          renderedContent = marked.parse(content);
+        }
+
+        wrapper.innerHTML = `
+        <div class="max-w-2xl px-5 py-3.5 rounded-2xl ${
+          isUser
+            ? "bg-indigo-600 text-white rounded-br-xs"
+            : "bg-slate-900 border border-slate-800 text-slate-200 rounded-bl-xs"
+        } space-y-1 w-full">
+            <div class="text-[10px] uppercase font-bold tracking-wider ${isUser ? "text-indigo-200" : "text-slate-500"}">
+                ${isUser ? "You" : "Assistant"}
+            </div>
+            <div class="msg-text text-sm leading-relaxed">${renderedContent}</div>
+        </div>
+    `;
+
+        container.appendChild(wrapper);
+        container.scrollTop = container.scrollHeight;
+        return wrapper;
+      }
+
+      function escapeHtml(str) {
+        return (str || "").replace(
+          /[&<>"']/g,
+          (match) =>
+            ({
+              "&": "&amp;",
+              "<": "&lt;",
+              ">": "&gt;",
+              '"': "&quot;",
+              "'": "&#39;",
+            })[match],
+        );
+      }
+    </script>
+  </body>
+</html>

@@ -1,0 +1,17 @@
+# Environment & Secrets
+.env
+
+# Java / Spring Boot Build Folders
+**/target/
+**/build/
+**/.mvn/wrapper/maven-wrapper.jar
+
+# Go Binaries
+**/api-gateway/api-gateway
+*.exe
+
+# IDE & OS Files
+.idea/
+.vscode/
+*.iml
+.DS_Store
