@@ -1,5 +1,5 @@
 # Stage 1 - build
-FROM golang:1.23-alpine AS build
+FROM golang:latest AS build
 WORKDIR /app
 
 # 1. Copy go.mod and go.sum from the api-gateway folder
