@@ -3,22 +3,33 @@ package main
 import (
 	"log"
 	"net/http"
+	"os"
 	"strings"
 
 	"github.com/d-passionate-coder/api-gateway/middleware"
 	"github.com/d-passionate-coder/api-gateway/proxy"
 )
 
+func getEnv(key, fallback string) string {
+	if value, exists := os.LookupEnv(key); exists && value != "" {
+		return value
+	}
+	return fallback
+}
+
 func main() {
 
-	authProxy, err := proxy.NewProxy("http://auth-service:8081")
+	authServiceURL := getEnv("AUTH_SERVICE_URL", "http://auth-service:8081")
+	chatServiceURL := getEnv("CHAT_SERVICE_URL", "http://chat-service:8082")
+
+	authProxy, err := proxy.NewProxy(authServiceURL)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("Failed to initialize auth proxy: %v", err)
 	}
 
-	chatProxy, err := proxy.NewProxy("http://chat-service:8082")
+	chatProxy, err := proxy.NewProxy(chatServiceURL)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("Failed to initialize chat proxy: %v", err)
 	}
 
 	router := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
