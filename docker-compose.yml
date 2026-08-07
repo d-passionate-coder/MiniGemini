@@ -23,10 +23,6 @@ services:
     container_name: auth-service
     expose:
       - "8081" # not exposed to host, only gateway can reach it
-    environment:
-      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/${POSTGRES_DB}
-      - SPRING_DATASOURCE_USERNAME=${POSTGRES_USER}
-      - SPRING_DATASOURCE_PASSWORD=${POSTGRES_PASSWORD}
     env_file:
       - .env
     depends_on:
@@ -40,10 +36,6 @@ services:
     container_name: chat-service
     expose:
       - "8082" # not exposed to host, only gateway can reach it
-    environment:
-      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/${POSTGRES_DB}
-      - SPRING_DATASOURCE_USERNAME=${POSTGRES_USER}
-      - SPRING_DATASOURCE_PASSWORD=${POSTGRES_PASSWORD}
     env_file:
       - .env
     depends_on:
@@ -57,9 +49,6 @@ services:
     container_name: api-gateway
     ports:
       - "8080:8080" # only this is exposed to the outside world
-    environment:
-      AUTH_SERVICE_URL: http://auth-service:8081
-      CHAT_SERVICE_URL: http://chat-service:8082
     env_file:
       - .env
     depends_on:
