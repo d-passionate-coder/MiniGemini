@@ -6,13 +6,18 @@ import (
 	"net/url"
 )
 
-func NewProxy(targetURL string) (*httputil.ReverseProxy, error) {
-	target, err := url.Parse(targetURL)
+func NewProxy(target string) (*httputil.ReverseProxy, error) {
+	targetURL, err := url.Parse(target)
 	if err != nil {
 		return nil, err
 	}
 
-	proxy := httputil.NewSingleHostReverseProxy(target)
+	proxy := &httputil.ReverseProxy{
+		Rewrite: func(r *httputil.ProxyRequest) {
+			r.SetURL(targetURL)
+			r.Out.Host = targetURL.Host // Overrides inbound Host with destination target
+		},
+	}
 	proxy.FlushInterval = -1
 
 	proxy.ModifyResponse = func(resp *http.Response) error {
