@@ -126,6 +126,24 @@
   <body
     class="bg-slate-950 text-slate-100 font-sans antialiased h-screen overflow-hidden"
   >
+    <!-- Toast Container -->
+    <div
+      id="toast"
+      style="
+        display: none;
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        padding: 12px 20px;
+        border-radius: 8px;
+        background-color: #1f2937;
+        color: #fff;
+        font-family: sans-serif;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        z-index: 9999;
+        transition: all 0.3s ease;
+      "
+    ></div>
     <!-- ================= AUTH VIEW ================= -->
     <div id="auth-view" class="flex items-center justify-center h-full">
       <div
@@ -363,6 +381,44 @@
           showAuthView();
         }
       });
+
+      function showToast(message, isError = false) {
+        const toast = document.getElementById("toast");
+        toast.innerText = message;
+        toast.style.backgroundColor = isError ? "#ef4444" : "#1f2937";
+        toast.style.display = "block";
+      }
+
+      function hideToast() {
+        const toast = document.getElementById("toast");
+        toast.style.display = "none";
+      }
+
+      async function warmupServices() {
+        showToast("⏳ Waking up backend services, please wait...");
+
+        try {
+          // Ping both services via gateway in parallel
+          const authCheck = fetch(`${API_BASE_URL}/auth/actuator/health`);
+          const chatCheck = fetch(`${API_BASE_URL}/chat/actuator/health`);
+
+          // Wait for both to respond
+          await Promise.all([authCheck, chatCheck]);
+
+          showToast("✅ All services are active!");
+
+          // Hide toast after 3 seconds once active
+          setTimeout(hideToast, 3000);
+        } catch (error) {
+          showToast(
+            "⚠️ Services took too long to respond. Please refresh.",
+            true,
+          );
+        }
+      }
+
+      // Trigger warmup check as soon as page loads
+      document.addEventListener("DOMContentLoaded", warmupServices);
 
       function showAuthView() {
         document.getElementById("auth-view").classList.remove("hidden");

@@ -19,12 +19,14 @@ public class SecurityConfig {
 
     private final GatewayHeaderFilter gatewayHeaderFilter;
 
+
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         return http
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
-                        .anyRequest().permitAll()  // all endpoints need JWT
+                        .requestMatchers("/actuator/health", "/health").permitAll()
+                        .anyRequest().authenticated()
                 )
                 .sessionManagement(s -> s
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS))

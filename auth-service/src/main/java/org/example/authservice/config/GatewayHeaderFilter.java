@@ -1,4 +1,4 @@
-package org.example.chatservice.security;
+package org.example.authservice.config;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -6,13 +6,11 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.context.SecurityContextHolder;
+
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
-import java.util.List;
 
 @Component
 @RequiredArgsConstructor
@@ -39,23 +37,6 @@ public class GatewayHeaderFilter extends OncePerRequestFilter {
         if (expectedSecret == null || !expectedSecret.equals(internalSecret)) {
             response.setStatus(HttpServletResponse.SC_FORBIDDEN);
             response.getWriter().write("Access Forbidden: Request must come through API Gateway.");
-            return;
-        }
-
-        String userId = request.getHeader("X-User-Id");
-
-        if (userId != null) {
-            UsernamePasswordAuthenticationToken authentication =
-                    new UsernamePasswordAuthenticationToken(
-                            userId,    // ← principal = userId
-                            null,
-                            List.of()
-                    );
-
-            SecurityContextHolder.getContext().setAuthentication(authentication);
-        }
-        else {
-            response.sendError(HttpServletResponse.SC_FORBIDDEN, "Direct access is prohibited.");
             return;
         }
 

@@ -33,3 +33,6 @@ server:
     include-binding-errors: always
   port: ${PORT:8082}
 
+internal:
+  secret: ${INTERNAL_SECRET}
+
