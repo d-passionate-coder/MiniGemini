@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/d-passionate-coder/api-gateway/middleware"
 	"github.com/d-passionate-coder/api-gateway/proxy"
@@ -17,10 +18,38 @@ func getEnv(key, fallback string) string {
 	return fallback
 }
 
+// handleHealthCheck attempts to hit the downstream health endpoint with retries
+func handleHealthCheck(w http.ResponseWriter, targetURL string, serviceName string) {
+	client := http.Client{
+		Timeout: 5 * time.Second,
+	}
+
+	// Try up to 5 times (5 * 3s sleep = ~15s polling window)
+	for i := 0; i < 5; i++ {
+		resp, err := client.Get(targetURL)
+		if err == nil && resp.StatusCode == http.StatusOK {
+			resp.Body.Close()
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusOK)
+			w.Write([]byte(`{"status":"UP","service":"` + serviceName + `"}`))
+			return
+		}
+		if resp != nil {
+			resp.Body.Close()
+		}
+		time.Sleep(3 * time.Second) // Pause between retries while Render spins up
+	}
+
+	// If still waking up after max retries, return JSON 503 instead of HTML 502
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusServiceUnavailable)
+	w.Write([]byte(`{"status":"STARTING","service":"` + serviceName + `"}`))
+}
+
 func main() {
 
-	authServiceURL := getEnv("AUTH_SERVICE_URL", "http://auth-service:8081")
-	chatServiceURL := getEnv("CHAT_SERVICE_URL", "http://chat-service:8082")
+	authServiceURL := getEnv("AUTH_SERVICE_URL", "localAuthService")
+	chatServiceURL := getEnv("CHAT_SERVICE_URL", "localChatService")
 
 	authProxy, err := proxy.NewProxy(authServiceURL)
 	if err != nil {
@@ -57,15 +86,11 @@ func main() {
 			w.WriteHeader(http.StatusOK)
 			w.Write([]byte(`{"status":"UP","service":"api-gateway"}`))
 
-		// Downstream Auth Service health check proxy
 		case r.URL.Path == "/auth/health":
-			r.URL.Path = "/health" // Rewrite path so auth-service receives /health
-			authProxy.ServeHTTP(w, r)
+			handleHealthCheck(w, authServiceURL+"/health", "auth-service")
 
-		// Downstream Chat Service health check proxy
 		case r.URL.Path == "/chat/health":
-			r.URL.Path = "/health" // Rewrite path so chat-service receives /health
-			chatProxy.ServeHTTP(w, r)
+			handleHealthCheck(w, chatServiceURL+"/health", "chat-service")
 
 		// Pass all other requests to JWT validation
 		default:

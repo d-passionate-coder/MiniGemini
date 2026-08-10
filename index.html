@@ -394,24 +394,78 @@
         toast.style.display = "none";
       }
 
+      const GATEWAY_BASE_URL = "https://api-gateway-d8vh.onrender.com";
+
       async function warmupServices() {
-        showToast("⏳ Waking up backend services, please wait...");
+        showToast("⏳ Connecting to API Gateway...");
 
-        try {
-          // Ping both services via gateway in parallel
-          const authCheck = fetch(`${API_BASE_URL}/auth/actuator/health`);
-          const chatCheck = fetch(`${API_BASE_URL}/chat/actuator/health`);
+        // Step 1: Wake up the API Gateway first
+        let gatewayReady = false;
+        let gatewayAttempts = 0;
 
-          // Wait for both to respond
-          await Promise.all([authCheck, chatCheck]);
+        while (!gatewayReady && gatewayAttempts < 10) {
+          gatewayAttempts++;
+          try {
+            const res = await fetch(`${GATEWAY_BASE_URL}/health`);
+            if (res.ok) {
+              gatewayReady = true;
+            }
+          } catch (err) {
+            console.log("Waiting for API Gateway cold start...");
+          }
 
-          showToast("✅ All services are active!");
+          if (!gatewayReady) {
+            await new Promise((resolve) => setTimeout(resolve, 3000)); // Wait 2s
+          }
+        }
 
-          // Hide toast after 3 seconds once active
-          setTimeout(hideToast, 3000);
-        } catch (error) {
+        if (!gatewayReady) {
+          showToast("⚠️ Gateway failed to start. Please refresh.", true);
+          return;
+        }
+
+        // Step 2: Gateway is alive! Now poll downstream services (/auth/health & /chat/health)
+        showToast("⏳ Waking up Auth and Chat services...");
+
+        let servicesReady = false;
+        let serviceAttempts = 0;
+        const maxServiceAttempts = 15; // 15 * 4s = 60s max wait time for Spring Boot
+
+        while (!servicesReady && serviceAttempts < maxServiceAttempts) {
+          serviceAttempts++;
+
+          try {
+            // Fire requests to both health proxies in parallel
+            const [authRes, chatRes] = await Promise.all([
+              fetch(`${GATEWAY_BASE_URL}/auth/health`),
+              fetch(`${GATEWAY_BASE_URL}/chat/health`),
+            ]);
+
+            // Both services must return HTTP 200 OK
+            if (authRes.ok && chatRes.ok) {
+              servicesReady = true;
+              showToast("✅ All services are active!");
+              setTimeout(hideToast, 3000);
+              return;
+            } else {
+              showToast(
+                `⏳ Services starting up... (${serviceAttempts}/${maxServiceAttempts})`,
+              );
+            }
+          } catch (err) {
+            // Handles temporary network blips during downstream boot
+            showToast(
+              `⏳ Waiting for backend response... (${serviceAttempts}/${maxServiceAttempts})`,
+            );
+          }
+
+          // Wait 4 seconds between downstream checks
+          await new Promise((resolve) => setTimeout(resolve, 4000));
+        }
+
+        if (!servicesReady) {
           showToast(
-            "⚠️ Services took too long to respond. Please refresh.",
+            "⚠️ Backend wakeup timed out. Please refresh the page.",
             true,
           );
         }
