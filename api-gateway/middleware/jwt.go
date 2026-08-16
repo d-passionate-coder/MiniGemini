@@ -5,12 +5,13 @@ import (
 	"encoding/base64"
 	"fmt"
 	"net/http"
+	"os"
 	"strings"
 
 	"github.com/golang-jwt/jwt/v5"
 )
 
-var jwtSecret, _ = base64.StdEncoding.DecodeString("404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970")
+var jwtSecret, _ = base64.StdEncoding.DecodeString(os.Getenv("JWT_SECRET"))
 
 func JWTMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

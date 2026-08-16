@@ -394,84 +394,52 @@
         toast.style.display = "none";
       }
 
-      const GATEWAY_BASE_URL = "https://api-gateway-d8vh.onrender.com";
+      const GATEWAY_URL = "https://api-gateway-d8vh.onrender.com";
+      const AUTH_URL = "https://auth-service-rqkk.onrender.com";
+      const CHAT_URL = "https://chat-service-eg4p.onrender.com";
 
       async function warmupServices() {
-        showToast("⏳ Connecting to API Gateway...");
+        showToast("⏳ Waking up backend services...");
 
-        // Step 1: Wake up the API Gateway first
-        let gatewayReady = false;
-        let gatewayAttempts = 0;
+        const maxAttempts = 25;
+        let attempts = 0;
 
-        while (!gatewayReady && gatewayAttempts < 10) {
-          gatewayAttempts++;
-          try {
-            const res = await fetch(`${GATEWAY_BASE_URL}/health`);
-            if (res.ok) {
-              gatewayReady = true;
-            }
-          } catch (err) {
-            console.log("Waiting for API Gateway cold start...");
-          }
-
-          if (!gatewayReady) {
-            await new Promise((resolve) => setTimeout(resolve, 3000)); // Wait 2s
-          }
-        }
-
-        if (!gatewayReady) {
-          showToast("⚠️ Gateway failed to start. Please refresh.", true);
-          return;
-        }
-
-        // Step 2: Gateway is alive! Now poll downstream services (/auth/health & /chat/health)
-        showToast("⏳ Waking up Auth and Chat services...");
-
-        let servicesReady = false;
-        let serviceAttempts = 0;
-        const maxServiceAttempts = 15; // 15 * 4s = 60s max wait time for Spring Boot
-
-        while (!servicesReady && serviceAttempts < maxServiceAttempts) {
-          serviceAttempts++;
+        while (attempts < maxAttempts) {
+          attempts++;
 
           try {
-            // Fire requests to both health proxies in parallel
-            const [authRes, chatRes] = await Promise.all([
-              fetch(`${GATEWAY_BASE_URL}/auth/health`),
-              fetch(`${GATEWAY_BASE_URL}/chat/health`),
+            const [gatewayRes, authRes, chatRes] = await Promise.all([
+              fetch(`${GATEWAY_URL}/health`),
+              fetch(`${AUTH_URL}/health`),
+              fetch(`${CHAT_URL}/health`),
             ]);
 
-            // Both services must return HTTP 200 OK
-            if (authRes.ok && chatRes.ok) {
-              servicesReady = true;
+            // Verify all services returned HTTP 200 OK
+            if (gatewayRes.ok && authRes.ok && chatRes.ok) {
               showToast("✅ All services are active!");
               setTimeout(hideToast, 3000);
               return;
-            } else {
-              showToast(
-                `⏳ Services starting up... (${serviceAttempts}/${maxServiceAttempts})`,
-              );
             }
-          } catch (err) {
-            // Handles temporary network blips during downstream boot
+
             showToast(
-              `⏳ Waiting for backend response... (${serviceAttempts}/${maxServiceAttempts})`,
+              `⏳ Services starting up... (${attempts}/${maxAttempts})`,
+            );
+          } catch (err) {
+            showToast(
+              `⏳ Waiting for backend response... (${attempts}/${maxAttempts})`,
             );
           }
 
-          // Wait 4 seconds between downstream checks
+          // Wait 4 seconds before next ping
           await new Promise((resolve) => setTimeout(resolve, 4000));
         }
 
-        if (!servicesReady) {
-          showToast(
-            "⚠️ Backend wakeup timed out. Please refresh the page.",
-            true,
-          );
-        }
+        showToast(
+          "⚠️ Backend wakeup timed out. Please refresh the page.",
+          true,
+        );
       }
 
-      // Trigger warmup check as soon as page loads
       document.addEventListener("DOMContentLoaded", warmupServices);
 
       function showAuthView() {
