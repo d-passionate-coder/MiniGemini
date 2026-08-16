@@ -542,14 +542,31 @@
         }
       }
 
-      function logout() {
-        localStorage.clear();
-        state.accessToken = null;
-        state.refreshToken = null;
-        state.firstName = null;
-        state.conversations = [];
-        state.activeConversationId = null;
-        window.location.reload();
+      async function logout() {
+        const refreshToken = localStorage.getItem("refreshToken");
+
+        try {
+          if (refreshToken) {
+            await fetch(`${API_BASE_URL}/auth/logout`, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+              },
+              body: JSON.stringify({ refreshToken: refreshToken }),
+            });
+          }
+        } catch (err) {
+          console.error("Error logging out on server:", err);
+        } finally {
+          localStorage.clear();
+          state.accessToken = null;
+          state.refreshToken = null;
+          state.firstName = null;
+          state.conversations = [];
+          state.activeConversationId = null;
+          window.location.reload();
+        }
       }
 
       // ==========================================
