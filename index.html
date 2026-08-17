@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, interactive-widget=resizes-content" />
     <title>AI Workspace</title>
 
     <!-- Tailwind CSS via CDN -->
@@ -124,7 +124,7 @@
     </style>
   </head>
   <body
-    class="bg-slate-950 text-slate-100 font-sans antialiased h-screen overflow-hidden"
+    class="bg-slate-950 text-slate-100 font-sans antialiased h-[100dvh] overflow-hidden"
   >
     <!-- Toast Container -->
     <div
@@ -363,7 +363,7 @@
         </div>
 
         <!-- Centered Fixed Input Bar -->
-        <div class="p-3 sm:p-4 border-t border-slate-900 bg-slate-950 w-full">
+        <div class="p-3 sm:p-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] border-t border-slate-900 bg-slate-950 w-full">
           <form
             onsubmit="sendMessage(event)"
             class="max-w-4xl mx-auto flex items-center gap-2 sm:gap-3 bg-slate-900 border border-slate-800 rounded-2xl px-3 sm:px-4 py-2.5 sm:py-3 focus-within:border-indigo-500/50 transition"
@@ -774,6 +774,10 @@
             <p class="text-sm">Select a conversation or start a new prompt.</p>
         </div>
     `;
+       
+      if (window.innerWidth < 768) {
+          toggleSidebar();
+        }
       }
 
       // ==========================================
