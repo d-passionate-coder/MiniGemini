@@ -454,8 +454,21 @@
       const AUTH_URL = "https://auth-service-rqkk.onrender.com";
       const CHAT_URL = "https://chat-service-eg4p.onrender.com";
 
+      let warmupInterval = null;
+
       async function warmupServices() {
-        showToast("⏳ Waking up backend services...");
+        setAuthFormDisabled(true);
+
+        let totalSecondsLeft = 120; 
+        showToast(`⏳ Waking up servers (~${formatETA(totalSecondsLeft)})... Please wait.`);
+
+        // Countdown timer update every second
+        warmupInterval = setInterval(() => {
+          if (totalSecondsLeft > 0) {
+            totalSecondsLeft--;
+            showToast(`⏳ Waking up servers (~${formatETA(totalSecondsLeft)})... Please wait.`);
+          }
+        }, 1000);
 
         const maxAttempts = 25;
         let attempts = 0;
@@ -470,33 +483,55 @@
               fetch(`${CHAT_URL}/health`),
             ]);
 
-            // Verify all services returned HTTP 200 OK
             if (gatewayRes.ok && authRes.ok && chatRes.ok) {
+              clearInterval(warmupInterval); // Stop countdown
               showToast("✅ All services are active!");
+              setAuthFormDisabled(false); // Re-enable Auth Form
               setTimeout(hideToast, 3000);
               return;
             }
-
-            showToast(
-              `⏳ Services starting up... (${attempts}/${maxAttempts})`,
-            );
           } catch (err) {
-            showToast(
-              `⏳ Waiting for backend response... (${attempts}/${maxAttempts})`,
-            );
+            // Ignored during cold start attempts
           }
 
-          // Wait 4 seconds before next ping
           await new Promise((resolve) => setTimeout(resolve, 4000));
         }
 
-        showToast(
-          "⚠️ Backend wakeup timed out. Please refresh the page.",
-          true,
-        );
+        // Timeout handling
+        clearInterval(warmupInterval);
+        showToast("⚠️ Backend warmup timed out. Please refresh.", true);
+        setAuthFormDisabled(false); // Re-enable form so user can try manual submit
+      }
+      document.addEventListener("DOMContentLoaded", warmupServices);
+
+      // Helper: Formats seconds into "1m 20s" or "45s"
+      function formatETA(seconds) {
+        const mins = Math.floor(seconds / 60);
+        const secs = seconds % 60;
+        return mins > 0 ? `${mins}m ${secs}s` : `${secs}s`;
       }
 
-      document.addEventListener("DOMContentLoaded", warmupServices);
+      // Helper: Disables / Enables Auth Buttons and Inputs
+      function setAuthFormDisabled(disabled) {
+        const authBtn = document.getElementById("auth-btn");
+        const toggleBtn = document.getElementById("toggle-auth-btn");
+        const inputs = document.querySelectorAll("#auth-form input");
+
+        inputs.forEach((input) => (input.disabled = disabled));
+
+        if (authBtn) {
+          authBtn.disabled = disabled;
+          authBtn.classList.toggle("opacity-50", disabled);
+          authBtn.classList.toggle("cursor-not-allowed", disabled);
+        }
+
+        if (toggleBtn) {
+          toggleBtn.disabled = disabled;
+          toggleBtn.classList.toggle("pointer-events-none", disabled);
+          toggleBtn.classList.toggle("opacity-50", disabled);
+        }
+      }
+      
 
       function showAuthView() {
         document.getElementById("auth-view").classList.remove("hidden");
@@ -569,6 +604,11 @@
               password: passwordInput,
             };
 
+        setAuthFormDisabled(true);
+        const authBtn = document.getElementById("auth-btn");
+        const originalText = authBtn.innerText;
+        authBtn.innerText = "Connecting...";
+
         try {
           const response = await fetch(`${API_BASE_URL}${endpoint}`, {
             method: "POST",
@@ -595,6 +635,10 @@
         } catch (err) {
           errDiv.innerText = err.message;
           errDiv.classList.remove("hidden");
+        }
+        finally {
+          setAuthFormDisabled(false);
+          authBtn.innerText = originalText;
         }
       }
 
